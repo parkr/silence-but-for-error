@@ -33,8 +33,6 @@ func main() {
 	flag.Var(&ignoredExitCodes, "ignore-exit-code", "Ignore a non-successful exit code (you may specify multiple times).")
 	flag.Parse()
 
-	fmt.Printf("ignored exit codes: %+v\n", ignoredExitCodes)
-
 	args := flag.Args()
 
 	if len(args) < 1 {
