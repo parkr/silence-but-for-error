@@ -31,16 +31,21 @@ func (i *intSlice) Set(exitCodeStr string) error {
 func main() {
 	var ignoredExitCodes intSlice
 	flag.Var(&ignoredExitCodes, "ignore-exit-code", "Ignore a non-successful exit code (you may specify multiple times).")
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "Print all stdout and stderr regardless of exit code")
 	flag.Parse()
+
+	runner := silence.NewRunner()
 
 	args := flag.Args()
 
 	if len(args) < 1 {
-		silence.Log("usage: silence-but-for-error <command> [args...]")
-		silence.Exit(1)
+		runner.Log("usage: silence-but-for-error <command> [args...]")
+		runner.Exit(silence.Failure)
 	}
 
-	if err := silence.Run(args[0], args[1:]...); err != nil {
+	err := runner.Run(args[0], args[1:]...)
+	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			// The program has exited with an exit code != 0
 
@@ -52,13 +57,19 @@ func main() {
 				exitStatus := status.ExitStatus()
 				for _, ignored := range ignoredExitCodes.codes {
 					if ignored == exitStatus {
-						silence.Exit(0)
+						runner.Exit(silence.Failure)
 					}
 				}
 			}
 		} else {
-			silence.Log("Command failed: %+v", err)
-			silence.Exit(1)
+			runner.Log("Command failed: %+v", err)
+			runner.Exit(silence.Failure)
 		}
 	}
+
+	if debug {
+		fmt.Print(runner.Output())
+	}
+
+	runner.Exit(silence.Success)
 }
